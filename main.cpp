@@ -76,7 +76,8 @@ int main( int argc, char** argv ) {
   return 0;
 }
 
-void detectFaces(IplImage *img, char key) {
+void detectFaces(IplImage *img, char key) 
+{
   int i,j;
   CvSeq *faces = cvHaarDetectObjects(img, cascade_f, storage,	1.1, 5, 0,
                                      cvSize(130, 130));
@@ -91,9 +92,12 @@ void detectFaces(IplImage *img, char key) {
                                  channels);
   int a, b, k;
 
-  for (i = r->y, a = 0; i < r->y + r->height, a < r->height; ++i, ++a) {
-    for (j = r->x, b = 0; j < r->x + r->width, b < r->width; ++j, ++b) {
-      for ( k = 0; k < channels; ++k) {
+  for (i = r->y, a = 0; i < r->y + r->height, a < r->height; ++i, ++a) 
+	{
+    for (j = r->x, b = 0; j < r->x + r->width, b < r->width; ++j, ++b) 
+	{
+      for ( k = 0; k < channels; ++k) 
+		{
         CvScalar tempo = cvGet2D(img, i, j);
         img1->imageData[a * img1->widthStep + b * channels + k] =
             (char)tempo.val[k];
