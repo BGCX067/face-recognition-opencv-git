@@ -1,0 +1,14 @@
+# depslib dependency file v1.0
+1322454789 source:/home/mathias/face-recognition-opencv/Code_Blocks_Project/main.cpp
+	<iostream>
+	"CFace.hpp"
+
+1322454922 /home/mathias/face-recognition-opencv/Code_Blocks_Project/CFace.hpp
+	<fstream>
+	<stdio.h>
+	<iostream>
+	<string.h>
+	"cv.h"
+	"cvaux.h"
+	"highgui.h"
+
