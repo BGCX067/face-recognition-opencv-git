@@ -352,21 +352,29 @@ CFace::CFace()
   */
 void CFace::Execute_Capture(void)
 {
-    CvCapture* capture = cvCreateCameraCapture(0);
+    CvCapture* capture = cvCreateCameraCapture(-1);  // Inicio la captura por camara
     IplImage* frame;
-    cvNamedWindow( "Video", CV_WINDOW_AUTOSIZE );
-    while(1)
-    {
-        char key;
-        frame = cvQueryFrame( capture );
+    cvNamedWindow( "Captura de Rostro", CV_WINDOW_AUTOSIZE );   // Creo una ventana para luego mostrar
+    char key;
 
-        if( !frame )                    // Si no logro capturar nada, break
+    cout << "   > > > > > > > > > >   M E N U   < < < < < < < < < " << endl << endl;
+    cout << "   's'   Grabar una captura  "                         << endl;
+    cout << "   'r'   Entrenar y reconocer"                         << endl;
+    cout << "   'e'   Reiniciar proceso"                            << endl;
+    cout << "  'ESC'  Salir"                                        << endl;
+
+    while (true)
+    {
+        frame = cvQueryFrame( capture );            // asigno la captura a frame
+
+        if( !frame )                                // Si no logro capturar nada, break
             break;
 
-        key = cvWaitKey(33);
-        detectFaces(frame, key);        // LLamo a la funcion detectFaces
-        cvShowImage("Video", frame);    // Muestro la captura en un frame
-        if( key == 27 )                 // en caso se presione la tecla ESC
+        key = cvWaitKey(30);                        // capturo la tecla
+        detectFaces(frame, key);                    // LLamo a la funcion detectFaces
+        cvShowImage("Captura de Rostro", frame);    // Muestro la captura en la ventana con marco al rostro si existe
+
+        if( key == 27 )                             // tecla ESC = salir
             break;
     }
     cvReleaseCapture( &capture );
@@ -409,11 +417,13 @@ void CFace::detectFaces(IplImage* img, char key)
     fstream f;
     char cadena[100];
     int nper, *resp;
-    if (key == 's')
+
+    if (key == 's')     // s = tecla para grabar una captura de rostro
     {
         CvSize size = cvSize(100,100);
         IplImage* tmpsize = cvCreateImage(size,img->depth, channels);
         cvResize(img1,tmpsize,CV_INTER_LINEAR);
+
         f.open("nper.txt", fstream::in);
         f >> nper;
         f.close();
@@ -421,22 +431,28 @@ void CFace::detectFaces(IplImage* img, char key)
         f.open("nper.txt", fstream::out);
         f << nper;
         f.close();
-        f.open("train.txt", fstream::app);
+
+        ofstream file("train.txt",ios_base::app);
+        cout << "Nombre de la captura: " << endl;
         cin >> cadena;
-        f << nper << " " << cadena << "\n";
-        f.close();
+        file << nper << " " << cadena << endl;
+        file.close();
+
         cvSaveImage(cadena, tmpsize);
         learn();
     }
-    if (key == 'r')
+
+    if (key == 'r')     // r = tecla para entrenar e intentar hacer match a un rostro
     {
         temporal = 1;
     }
-    if (key == 'e')
+
+    if (key == 'e')     // e = tecla para reiniciar el proceso
     {
         temporal = 0;
     }
-    if (temporal)
+
+    if (temporal)   // procedo a hacer el match
     {
         f.open("test.txt", fstream::out);
         for (int nf = 0; nf < (faces ? faces->total : 0); ++nf)
@@ -445,10 +461,11 @@ void CFace::detectFaces(IplImage* img, char key)
             cvRectangle(img, cvPoint(r->x, r->y),
                         cvPoint(r->x + r->width, r->y + r->height),
                         CV_RGB(255, 0, 0), 1, 8, 0);
+
             int channels  = img->nChannels;
-            IplImage* img1 =
-                cvCreateImage(cvSize(r->height, r->width), img->depth, channels);
+            IplImage* img1 =cvCreateImage(cvSize(r->height, r->width), img->depth, channels);
             int a, b, k;
+
             for(i=r->y, a=0; i<r->y+r->height, a<r->height; ++i, ++a)
             {
                 for(j=r->x, b=0; j<r->x+r->width, b<r->width; ++j, ++b)
@@ -461,34 +478,38 @@ void CFace::detectFaces(IplImage* img, char key)
                     }
                 }
             }
+
             CvSize size = cvSize(100, 100);
             IplImage* tmpsize = cvCreateImage(size, img->depth, channels);
             cvResize(img1, tmpsize, CV_INTER_LINEAR);
+
             char varname[200];
             sprintf(varname, "consulta_%d.bmp", nf );
             f << 1 << " " << varname << " \n";
             cvSaveImage(varname, tmpsize);
         }
+
         f.close();
         resp = recognize();
+
         for(j = 0; j < faces->total; ++j)
         {
             CvRect *r = (CvRect*)cvGetSeqElem(faces, j);
             f.open("train.txt", fstream::in);
             sprintf(cadena, "Desconocido");
+
             for (i = 0; i < resp[j]; ++i)
             {
                 f.getline(cadena,100);
             }
+
             CvFont font;
             cvInitFont(&font, CV_FONT_HERSHEY_SIMPLEX, 1.0, 1.0, 0, 1, CV_AA);
-            cvPutText(img, cadena, cvPoint(r->x, r->y+r->height/2), &font,
-                      cvScalar(255, 255, 255, 0));
+            cvPutText(img, cadena, cvPoint(r->x, r->y+r->height/2), &font, cvScalar(255, 255, 255, 0));
             f.close();
         }
     }
 }
-
 
 
 /** @brief Destructor de la clase
@@ -498,5 +519,3 @@ CFace::~CFace()
 {
 
 }
-
-
