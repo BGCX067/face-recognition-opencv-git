@@ -26,7 +26,7 @@ class CFace
 public:
 
     //      MEMBERS       =======================
-    IplImage ** faceImgArr        ; // array of face images
+    IplImage ** faceImgArr        ; // array de rostros cargados desde el archivo train.txt
     CvMat    *  personNumTruthMat ; // array of person numbers
     int nTrainFaces               ; // the number of training images
     int nEigens                   ; // the number of eigenvalues
@@ -51,7 +51,7 @@ public:
     int     findNearestNeighbor(float* projectedTestFace);
     int     loadFaceImgArray(char* filename);
     void    detectFaces(IplImage* img, char c);
-};
+}; /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 /** @brief loadTrainingData
   *
@@ -90,15 +90,16 @@ int CFace::loadTrainingData(CvMat** pTrainPersonNumMat)
 
 }
 
-/** @brief loadFaceImgArray
+/** @brief loadFaceImgArray, carga todos los rostros del archivo train.txt
+  *        en un array faImgArr.
   *
+  * @return numero de rostros en el archivo train.txt
   */
 int CFace::loadFaceImgArray(char* filename)
 {
-        FILE * imgListFile = 0;
+    FILE * imgListFile = 0;
     char imgFilename[512];
     int iFace, nFaces=0;
-
 
     // open the input file
     if( !(imgListFile = fopen(filename, "r")) )
@@ -119,8 +120,7 @@ int CFace::loadFaceImgArray(char* filename)
     for(iFace=0; iFace<nFaces; iFace++)
     {
         // read person number and name of image file
-        fscanf(imgListFile,
-               "%d %s", personNumTruthMat->data.i+iFace, imgFilename);
+        fscanf(imgListFile, "%d %s", personNumTruthMat->data.i+iFace, imgFilename);
 
         // load the face image
         faceImgArr[iFace] = cvLoadImage(imgFilename, CV_LOAD_IMAGE_GRAYSCALE);
@@ -133,7 +133,6 @@ int CFace::loadFaceImgArray(char* filename)
     }
 
     fclose(imgListFile);
-
     return nFaces;
 }
 
@@ -168,7 +167,8 @@ int CFace::findNearestNeighbor(float* projectedTestFace)
     return iNearest;
 }
 
-/** @brief storeTrainingData
+/** @brief storeTrainingData, escribe los datos del entrenamiento
+  *        en el archivo facedata.xml
   *
   */
 void CFace::storeTrainingData(void)
@@ -186,6 +186,7 @@ void CFace::storeTrainingData(void)
     cvWrite(fileStorage, "eigenValMat", eigenValMat, cvAttrList(0,0));
     cvWrite(fileStorage, "projectedTrainFaceMat", projectedTrainFaceMat, cvAttrList(0,0));
     cvWrite(fileStorage, "avgTrainImg", pAvgTrainImg, cvAttrList(0,0));
+
     for(i=0; i<nEigens; i++)
     {
         char varname[200];
@@ -195,15 +196,15 @@ void CFace::storeTrainingData(void)
 
     // release the file-storage interface
     cvReleaseFileStorage( &fileStorage );
-
 }
 
-/** @brief doPCA
+/** @brief doPCA, obtiene las caracteristicas principales del rostro
+  *        coloca data normalizada en eigenValMat
   *
   */
 void CFace::doPCA(void)
 {
-        int i;
+    int i;
     CvTermCriteria calcLimit;
     CvSize faceImgSize;
 
@@ -214,6 +215,7 @@ void CFace::doPCA(void)
     faceImgSize.width  = faceImgArr[0]->width;
     faceImgSize.height = faceImgArr[0]->height;
     eigenVectArr = (IplImage**)cvAlloc(sizeof(IplImage*) * nEigens);
+
     for(i=0; i<nEigens; i++)
         eigenVectArr[i] = cvCreateImage(faceImgSize, IPL_DEPTH_32F, 1);
 
@@ -239,7 +241,6 @@ void CFace::doPCA(void)
         eigenValMat->data.fl);
 
     cvNormalize(eigenValMat, eigenValMat, 1, 0, CV_L1, 0);
-
 }
 
 /** @brief recognize
@@ -247,7 +248,7 @@ void CFace::doPCA(void)
   */
 int* CFace::recognize(void)
 {
-        int iNearest, nearest, truth;
+    int iNearest, nearest, truth;
     int i, nTestFaces  = 0;         // the number of test images
     CvMat * trainPersonNumMat = 0;  // the person numbers during training
     float * projectedTestFace = 0;
@@ -285,8 +286,8 @@ int* CFace::recognize(void)
     return respNearest;
 }
 
-/** @brief learn
-  *
+/** @brief learn, se encarga de sacar PCA al nuevo rostro grabado y pasa el control
+  *        a StoreTrainingData.
   */
 void CFace::learn(void)
 {
@@ -296,9 +297,7 @@ void CFace::learn(void)
     nTrainFaces = loadFaceImgArray("train.txt");
     if( nTrainFaces < 2 )
     {
-        fprintf(stderr,
-                "Need 2 or more training faces\n"
-                "Input file contains only %d\n", nTrainFaces);
+        fprintf(stderr, "Need 2 or more training faces\n" "Input file contains only %d\n", nTrainFaces);
         return;
     }
 
@@ -310,20 +309,17 @@ void CFace::learn(void)
     offset = projectedTrainFaceMat->step / sizeof(float);
     for(i=0; i<nTrainFaces; i++)
     {
-        //int offset = i * nEigens;
         cvEigenDecomposite(
             faceImgArr[i],
             nEigens,
             eigenVectArr,
             0, 0,
             pAvgTrainImg,
-            //projectedTrainFaceMat->data.fl + i*nEigens);
             projectedTrainFaceMat->data.fl + i*offset);
     }
 
     // store the recognition data as an xml file
     storeTrainingData();
-
 }
 
 /** @brief Constructor de la clase CFace
@@ -408,8 +404,7 @@ void CFace::detectFaces(IplImage* img, char key)
             for ( k = 0; k < channels; ++k)
             {
                 CvScalar tempo = cvGet2D(img, i, j);
-                img1->imageData[a * img1->widthStep + b * channels + k] =
-                    (char)tempo.val[k];
+                img1->imageData[a * img1->widthStep + b * channels + k] = (char)tempo.val[k];
             }
         }
     }
